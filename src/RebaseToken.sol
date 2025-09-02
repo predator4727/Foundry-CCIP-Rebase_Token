@@ -47,7 +47,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     uint256 private constant PRECISION_FACTOR = 1e18;
     bytes32 private constant MINT_AND_BURN_ROLE = keccak256("MINT_AND_BURN_ROLE");
 
-    uint256 private s_interestRate = 5e10; // interest rate per second 
+    uint256 private s_interestRate = ((5 * PRECISION_FACTOR) / 1e8); // interest rate per second -> 10 ^ (-8) = 1 / 10^8; 5e(-8) * PRECISION_FACTOR
 
     mapping(address => uint256) private s_userInterestRates;
     mapping(address => uint256) private s_userLastUpdatedTimestamp;
@@ -68,7 +68,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      */
     function setInterestRate(uint256 _newInterestRate) external onlyOwner {
         // Logic to set the new interest rate
-        if (_newInterestRate < s_interestRate) {
+        if (_newInterestRate >= s_interestRate) {
             revert RebaseToken__InterestRateCanOnlyDecrease(_newInterestRate, s_interestRate);
         }
         s_interestRate = _newInterestRate;
@@ -103,9 +103,6 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         * @param _amount The amount of tokens to burn.
      */
     function burn(address _from, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
-        if (_amount == type(uint256).max) {
-            _amount = balanceOf(_from);
-        }
         _mintAccruedInterest(_from);
         _burn(_from, _amount);
     }
@@ -169,16 +166,6 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         s_userLastUpdatedTimestamp[_user] = block.timestamp;
         // call _mint to mint tokens to the user
         _mint(_user, balanceIncrease);
-
-        // uint256 userInterestRate = s_userInterestRates[_user];
-        // if (userInterestRate == 0) {
-        //     return;
-        // }
-        // uint256 interestDifference = s_interestRate - userInterestRate;
-        // uint256 interest = (balanceOf(_user) * interestDifference) / 1e10;
-        // if (interest > 0) {
-        //     _mint(_user, interest);
-        // }
     }
 
 
@@ -193,11 +180,11 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
 
 
     /**
-        * @dev Returns the current principal balance of a user. This is the number of tokens that have currently minted to the user, not including any interest that has accrued since the last time the user interacted with the protocol
+        * @dev Returns the current principle balance of a user. This is the number of tokens that have currently minted to the user, not including any interest that has accrued since the last time the user interacted with the protocol
         * @param _user The address of the user to query.
-        * @return The current principal balance of the user.
+        * @return The current principle balance of the user.
      */
-    function getPrincipalBalance(address _user) external view returns (uint256) {
+    function getPrincipleBalance(address _user) external view returns (uint256) {
         return super.balanceOf(_user);
     }
 
@@ -227,7 +214,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     /**
         * @notice Calculates the accumulated interest for a user since their last update.
         * @param _user The address of the user to query.
-        * @return The accumulated interest for the user.
+        * @return linearInterest The accumulated interest for the user.
      */
     function _calculateUserAccumulatedInterestSinceLastUpdate(address _user) internal view returns (uint256 linearInterest) {
         // we need to calculate the interest that has accumulated since last update

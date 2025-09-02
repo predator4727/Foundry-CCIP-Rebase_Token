@@ -49,6 +49,10 @@ forge build
 
 # Usage
 
+# Design Flaws
+1. If a user deposited early with small amount (wallet_1), later deposited with big money (wallet_2), and then transfered money from wallet_2 to wallet_1, the user will save the highest interest rate.
+2. The flow is how interest is calculated. When user is going to burn or transfer, the user get accrued interest before these actions. Usually calculation should compaunding, not linear.
+
 ## Start a local node
 
 ```
