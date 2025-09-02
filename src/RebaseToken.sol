@@ -39,10 +39,11 @@ import { AccessControl } from "@openzeppelin/access/AccessControl.sol";
 
 contract RebaseToken is ERC20, Ownable, AccessControl {
 
-    //errors
+    //***************   ERRORS   ***************
     error RebaseToken__InterestRateCanOnlyDecrease(uint256 newInterestRate, uint256 currentInterestRate);
 
-    // state variables
+    
+    //***************   STATE VARIABLES   ***************
     uint256 private constant PRECISION_FACTOR = 1e18;
     bytes32 private constant MINT_AND_BURN_ROLE = keccak256("MINT_AND_BURN_ROLE");
 
@@ -51,10 +52,12 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     mapping(address => uint256) private s_userInterestRates;
     mapping(address => uint256) private s_userLastUpdatedTimestamp;
 
-    // events
+    
+    //***************   EVENTS   ***************
     event RebaseToken__InterestRateUpdated(uint256 newInterestRate);
 
 
+    //***************   CONSTRUCTOR   ***************
     constructor() ERC20("RebaseToken", "RBT") Ownable(msg.sender) {}
 
     
