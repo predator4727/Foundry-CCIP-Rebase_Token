@@ -22,7 +22,6 @@
 * private
 * view / pure
 */
-
 pragma solidity ^0.8.24;
 
 import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
@@ -80,6 +79,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      * @param _account The address to grant the role to.
      */
     function grantMintAndBurnRole(address _account) external onlyOwner {
+        // aderyn-ignore-next-line(unchecked-return)
         _grantRole(MINT_AND_BURN_ROLE, _account);
     }
 
@@ -89,9 +89,9 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         * @param _to The address to mint tokens to.
         * @param _amount The amount of tokens to mint.
      */
-    function mint(address _to, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
+    function mint(address _to, uint256 _amount, uint256 _userInterestRate) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAccruedInterest(_to);
-        s_userInterestRates[_to] = s_interestRate; // we set new interest rate except bridging
+        s_userInterestRates[_to] = _userInterestRate;
         _mint(_to, _amount);
     }
 
@@ -125,6 +125,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         if (balanceOf(_to) == 0) {
             s_userInterestRates[_to] = s_userInterestRates[msg.sender];
         }
+        // aderyn-ignore-next-line(unsafe-erc20-operation)
         return super.transfer(_to, _amount);
     }
 
@@ -138,6 +139,16 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         * @return A boolean indicating the success of the transfer.
      */
     function transferFrom(address _from, address _to, uint256 _amount) public override returns (bool) {
+        require(_from != address(0), "Transfer from zero address");
+        require(_to != address(0), "Transfer to zero address");
+        require(_amount > 0, "Amount must be positive");
+        
+        // Authorization check
+        require(
+            _from == msg.sender || 
+            allowance(_from, msg.sender) >= _amount,
+            "Insufficient allowance"
+        );
         _mintAccruedInterest(_from);
         _mintAccruedInterest(_to);
         if (_amount == type(uint256).max) {

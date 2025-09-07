@@ -1,5 +1,4 @@
 //SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.24;
 
 import { IRebaseToken } from "./interfaces/IRebaseToken.sol";
@@ -43,21 +42,28 @@ contract Vault {
      */
     function deposit() external payable {
         // 1. we need to use the amount of ETH the user has sent to mint tokens to the vault
-        uint256 amount = msg.value;
-        require(amount > 0, "Must send ETH to deposit");
+        require(msg.value > 0, "Must send ETH to deposit");
         // mint tokens to the user
-        i_rebaseToken.mint(msg.sender, amount);
-        emit Vault__Deposited(msg.sender, amount);
+        uint256 userInterestRate = i_rebaseToken.getInterestRate();
+        i_rebaseToken.mint(msg.sender, msg.value, userInterestRate);
+        emit Vault__Deposited(msg.sender, msg.value);
     }
 
     /**
      * @dev Allows users to redeem vault tokens for ETH.
      */
+    // aderyn-ignore-next-line(eth-send-unchecked-address)
     function redeem(uint256 _amount) external {
         require(_amount > 0, "Must have tokens to redeem");
+
+        // Get user balance first for proper validation
+        uint256 userBalance = i_rebaseToken.balanceOf(msg.sender);
+        require(userBalance >= _amount, "Insufficient token balance");
+
         if (_amount == type(uint256).max) {
-            _amount = i_rebaseToken.balanceOf(msg.sender);
+            _amount = userBalance;
         }
+        
         // burn tokens from the user
         i_rebaseToken.burn(msg.sender, _amount);
         // send ETH to the user
